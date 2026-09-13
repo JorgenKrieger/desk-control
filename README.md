@@ -72,14 +72,28 @@ curl -X POST http://127.0.0.1:8842/config -H 'content-type: application/json' \
 Restart the service once (`launchctl kickstart -k gui/$(id -u)/com.desk-control.service`,
 or just re-run `uvicorn` if running it directly) so it picks up the new `device_id`.
 
-From then on:
+From then on, using the CLI (a thin wrapper around the same API):
+
+```bash
+./bin/desk status
+./bin/desk stand
+./bin/desk sit
+./bin/desk stop
+./bin/desk move-to 95
+./bin/desk config get
+./bin/desk config set --sit 72 --stand 112
+```
+
+Put `bin/` on your `PATH` (or symlink `bin/desk` into somewhere already on it,
+e.g. `ln -s "$(pwd)/bin/desk" ~/.local/bin/desk`) to run `desk status` from
+anywhere, not just this folder.
+
+Or hit the HTTP API directly -- useful for Hammerspoon, calendar automations,
+etc.:
 
 ```bash
 curl http://127.0.0.1:8842/status
 curl -X POST http://127.0.0.1:8842/stand
-curl -X POST http://127.0.0.1:8842/sit
-curl -X POST http://127.0.0.1:8842/stop
-curl -X POST http://127.0.0.1:8842/move_to -H 'content-type: application/json' -d '{"height_cm": 95}'
 ```
 
 ## API
@@ -124,6 +138,8 @@ controller.py   Desk class: holds the BLE connection, tracks live height, moveme
 config.py       local storage for sit/stand preset heights (the desk itself has no preset storage)
 service.py      FastAPI app exposing the above over HTTP
 discover_device.py  one-time setup helper: finds your desk's device_id
+cli.py          the `desk` CLI (status/up/down/stop/sit/stand/move-to/config)
+bin/desk        wrapper script so `desk <command>` works from anywhere
 launchd/        run service.py as a per-user background service at login
 pklg_decode.py  decodes macOS PacketLogger (.pklg) captures, for further protocol investigation
 log/            where local captures go (gitignored -- see log/README.md)
