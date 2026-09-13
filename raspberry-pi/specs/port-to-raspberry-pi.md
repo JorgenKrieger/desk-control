@@ -108,23 +108,27 @@ silently:
 - Or restrict via the Pi's own firewall (`ufw`/`iptables`) to specific
   device IPs (the Mac, a future HA box) -- more setup, most precise.
 
-### 3.4 BLE permissions on Linux
+### 3.4 BLE permissions on Linux -- tested, works out of the box
 
-Unlike macOS (where CoreBluetooth access is gated by a one-time system
-permission prompt), `bleak`'s Linux backend (via BlueZ/`dbus-fast`) commonly
-needs either running as root or granting the Python binary explicit
-capabilities:
+**Update: tested directly (section 7). No `setcap`, no root needed.**
+Scanning, connecting, writing (the safe STOP-probe), and receiving a
+notification all worked as the regular `jorgen` user with zero special
+permission setup. The `setcap`/root concern below was the standard general
+advice for Linux BLE work, but this Pi's default BlueZ/D-Bus policy already
+allows a normal local user to do everything this project needs.
+
+Original concern, kept for reference in case a future OS image or user
+setup behaves differently: unlike macOS (where CoreBluetooth access is
+gated by a one-time system permission prompt), `bleak`'s Linux backend (via
+BlueZ/`dbus-fast`) can sometimes need either running as root or granting
+the Python binary explicit capabilities:
 
 ```bash
 sudo setcap 'cap_net_raw,cap_net_admin+eip' "$(readlink -f "$(command -v python3)")"
 ```
 
-(or run the systemd unit as root, simpler but coarser). This is a common
-stumbling block for anyone new to Linux BLE work and should be tested and
-documented explicitly, not assumed to "just work" the way it does on macOS.
-**Not yet tested empirically** -- section 7 confirms `bleak`/`dbus-fast`
-*install*, but actually opening a BLE connection through BlueZ and its
-permission model on this Pi is still untested.
+Not needed here, but keep this in mind if a fresh install ever behaves
+differently.
 
 **Related finding from section 7:** `dbus-fast` (the library `bleak` uses
 for BlueZ/D-Bus on Linux) is not pure Python as generally described -- it
@@ -179,12 +183,16 @@ walking away from it.
 - [x] Confirm `bleak` itself installs -- done (section 7): works, but
       needs `python3-dev` installed first, and the `dbus-fast` compile
       takes several minutes the first time
-- [ ] Install `python3-dev` on the real deployment install (not just the
-      throwaway test venv) -- `sudo apt-get install -y python3-dev`
-- [ ] Update `pyproject.toml`: `uvicorn[standard]` -> `uvicorn`
-- [ ] `setcap` (or run-as-root) for BLE permissions, and actually test
-      opening a real BLE connection through BlueZ (untested so far --
-      only package installation has been verified, not runtime behavior)
+- [x] Install `python3-dev` on the real deployment install -- done
+- [x] Update `pyproject.toml`: `uvicorn[standard]` -> `uvicorn`, and added
+      `requirements.txt` since the Pi uses plain `pip`/`venv`, not Poetry
+- [x] Real deployment venv set up at `~/desk-control/.venv` on the Pi
+      (rsynced source files, not the throwaway test venv), all deps
+      installed cleanly (`dbus-fast`'s cached wheel reused instantly, no
+      recompile)
+- [x] Test opening a real BLE connection through BlueZ -- confirmed
+      working with zero special permissions (section 7): scan, connect,
+      write, and notification receipt all succeeded as a regular user
 - [ ] Write the `systemd` unit + install/uninstall scripts
 - [ ] Update `config.py`'s config path for Linux
 - [ ] Decide and implement the network-exposure approach (3.3)
@@ -197,14 +205,14 @@ walking away from it.
 
 - Which user account runs the service (affects 3.2, 3.4, 3.5)?
 - Network exposure approach (3.3)?
-- Keep Poetry, or is a plain `venv` + `pip` simpler on such constrained
-  hardware? `pip`/`venv` were used for the empirical testing in section 7
-  (no `pip` module by default, but `python3 -m venv` bundles a working one
-  via `ensurepip`, so no `apt`/sudo was even needed for that). Poetry
-  itself is pure Python and should still work fine, but given how tight
-  memory is on this device, a plain `venv` avoids one extra dependency
-  layer -- worth deciding deliberately rather than defaulting to whatever
-  `mac/` uses.
+- ~~Keep Poetry, or is a plain `venv` + `pip` simpler?~~ **Decided: plain
+  `venv` + `pip`.** No `pip` module by default on a fresh image, but
+  `python3 -m venv` bundles a working one via `ensurepip`, so no
+  `apt`/sudo is even needed. `poetry.lock` was removed from this directory
+  in favor of `requirements.txt`; `pyproject.toml` is kept as a dependency
+  reference but isn't the actual install mechanism here. The real
+  deployment venv lives at `~/desk-control/.venv` on the Pi itself, set up
+  from the rsynced source files (see section 7's follow-up).
 
 ## 7. Empirical testing log (2026-09-13, over SSH to the real Pi)
 
@@ -268,3 +276,30 @@ and imports successfully on this exact Pi. The only real casualty is
 Starlette rewrite, no alternate BLE library -- `mac/`'s actual code should
 port with minimal changes once the process-supervision (3.2), network
 (3.3), and BLE-permission (3.4) pieces are done.
+
+**Follow-up session -- real deployment venv + BLE runtime test:** rsynced
+the actual source files (`config.py`, `controller.py`, `protocol.py`,
+`service.py`, `cli.py`, `discover_device.py`, `pklg_decode.py`,
+`pyproject.toml`, `requirements.txt`) to `~/desk-control` on the Pi (not
+the throwaway `~/desk-port-test`), created a real venv there, and installed
+from `requirements.txt`. Confirmed `dbus-fast`'s wheel cache is shared
+across venvs for the same user -- this install reused the previously-built
+wheel instantly, no recompile, finished in under 2.5 minutes total.
+
+Then tested the actual BLE runtime end-to-end using our own `controller.py`
+unchanged: `discover_device.py` found the desk from the Pi's physical
+location (confirming BLE range is fine), reporting its real BlueZ MAC
+address (`57:4C:62:F0:49:FF` -- as expected, a real address rather than
+macOS's opaque CoreBluetooth UUID) and the same `device_id` (`01065419`)
+already known from the Mac side. A follow-up test using `Desk.connect()` +
+`Desk.refresh_height()` (the safe STOP-probe) + `Desk.disconnect()`
+succeeded fully as a **regular, non-root user with no `setcap`** -- connect,
+write, notification receipt, and clean disconnect all worked first try.
+(Note: had to briefly stop the Mac's own service during this test, since
+the desk can only hold one BLE connection at a time and stops advertising
+while connected -- restored afterward.)
+
+This closes out the two biggest remaining unknowns from the original plan:
+BLE permissions on Linux are a non-issue on this setup, and `controller.py`
+genuinely needs zero changes to work identically over BlueZ instead of
+CoreBluetooth.
