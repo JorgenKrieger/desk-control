@@ -1,10 +1,10 @@
 # desk CLI
 
 A small, dependency-free command-line client for the desk-control service
-(whichever machine it's running on -- normally the Raspberry Pi, see
-[`../raspberry-pi/`](../raspberry-pi/README.md)). Not Mac- or Pi-specific:
-`cli.py` only uses the Python standard library, so this runs anywhere with
-Python 3 and network access to the service.
+-- see [the root README](../README.md) for the full project story and API
+reference. `cli.py` only uses the Python standard library, so this runs
+anywhere with Python 3 and network access to the service (not Mac- or
+Pi-specific).
 
 ```bash
 ./desk status

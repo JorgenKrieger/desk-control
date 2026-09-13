@@ -1,26 +1,15 @@
-# desk-control (Raspberry Pi)
+# raspberry-pi
 
-![Platform](https://img.shields.io/badge/platform-Raspberry%20Pi-c51a4a)
-![Python](https://img.shields.io/badge/python-3.11%2B-blue)
-![Protocol](https://img.shields.io/badge/protocol-reverse--engineered-success)
-![License](https://img.shields.io/badge/license-MIT-blue)
+The live, primary, always-on deployment -- see [the root README](../README.md)
+for the full project story, architecture, and API reference. This is a
+per-user `systemd` service on a Raspberry Pi Zero W, bound to `0.0.0.0` so
+it's reachable over your home network (unlike `../dev/`, which binds to
+`127.0.0.1` only).
 
-This is the **primary, always-on** deployment of desk-control -- a local,
-self-hosted replacement for the manufacturer's BLE app for a Jingshi
-standing desk (advertises as `BLE SPP`). It runs as a per-user `systemd`
-service on a Raspberry Pi Zero W, reachable over your home network, so
-control doesn't depend on a laptop being awake. See
-[`../dev/README.md`](../dev/README.md) for the original reverse-engineering
-story and protocol details, and
-[`specs/port-to-raspberry-pi.md`](specs/port-to-raspberry-pi.md) for how
-this port was validated on the real hardware.
-
-## Status
-
-Live and working: BLE connect, live height, up/down/stop, and move-to
-(sit/stand presets) all confirmed end-to-end on the actual Pi Zero W, as a
-regular non-root user, reachable over the LAN. The Mac's own service has
-been retired in favor of this one -- see `../dev/README.md`.
+See [`specs/port-to-raspberry-pi.md`](specs/port-to-raspberry-pi.md) for
+how this port was validated on the real hardware (dependency compatibility,
+BLE permissions, etc.) -- worth reading if you're setting this up on
+different Pi hardware or a different OS image.
 
 ## Setup
 
@@ -29,16 +18,13 @@ python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 ```
 
-**1. Find your desk's `device_id`** (needed since `"BLE SPP"` is a generic
-name other devices might also advertise):
+**1. Find your desk's `device_id`:**
 
 ```bash
 .venv/bin/python3 discover_device.py
 ```
 
-Note the printed `device_id`.
-
-**2. Start the service** for now, to set config:
+**2. Start the service** temporarily, to set config:
 
 ```bash
 .venv/bin/uvicorn service:app --host 0.0.0.0 --port 8842
@@ -52,8 +38,8 @@ curl -X POST http://localhost:8842/config -H 'content-type: application/json' \
   -d '{"device_id": "<from step 1>", "sit_height_cm": 70, "stand_height_cm": 110}'
 ```
 
-Stop the foreground service (Ctrl-C), then **install it as a real
-always-on service**:
+**4. Stop the foreground service** (Ctrl-C), then install it as a real
+always-on service:
 
 ```bash
 cd systemd && ./install.sh
@@ -65,48 +51,26 @@ lingering so it keeps running independent of any SSH login. See
 
 ## Using it
 
-From any device on your network:
-
 ```bash
 curl http://<pi-address>:8842/status
-curl -X POST http://<pi-address>:8842/stand
 ```
 
-Or use the CLI (in `../cli/`, works from any machine, not just the Mac) --
-already points at the Pi by default. See [`../cli/README.md`](../cli/README.md).
+or with [`../cli/`](../cli/README.md), which already points here by default.
 
-## API
+## Network exposure
 
-| Method & path | Description |
-|---|---|
-| `GET /status` | `{connected, height_cm, is_moving}` |
-| `POST /up` | Start moving up |
-| `POST /down` | Start moving down |
-| `POST /stop` | Stop movement |
-| `POST /move_to` | Body: `{"height_cm": number}` -- move to an absolute height |
-| `POST /sit` | Move to the stored sit height |
-| `POST /stand` | Move to the stored stand height |
-| `GET /config` | Current stored config |
-| `POST /config` | Body: `{"sit_height_cm"?, "stand_height_cm"?, "device_id"?}` -- update config |
-
-**Note on network exposure:** this binds to `0.0.0.0`, deliberately --
-unlike the Mac version, the whole point of the Pi is to be reachable from
-other devices on your home network. That means anything on your network can
-move the desk. Judged an acceptable tradeoff for a private network with no
-guest access; revisit (a shared-secret header, or firewalling to specific
-device IPs) if that assumption ever stops holding. See `service.py`'s
-docstring and `specs/port-to-raspberry-pi.md` section 3.3.
+Binding to `0.0.0.0` is deliberate -- the whole point of the Pi is to be
+reachable from other devices on your home network. That means anything on
+your network can move the desk (no authentication). Judged an acceptable
+tradeoff for a private network with no guest access; revisit (a
+shared-secret header, or firewalling to specific device IPs) if that
+assumption ever stops holding. See `service.py`'s docstring and
+`specs/port-to-raspberry-pi.md` section 3.3.
 
 ## Configuration
 
-Sit/stand heights and `device_id` are stored in
-`~/.config/desk-control/config.json`, editable directly or via
-`POST /config`.
-
-`device_id` is the ASCII decoding of the desk's BLE manufacturer data,
-which appears tied to the QR/serial identifier on the physical unit (see
-`../dev/specs/reverse-engineer.md` section 4). Find yours with
-`discover_device.py`.
+Stored in `~/.config/desk-control/config.json` on the Pi, editable directly
+or via `POST /config`.
 
 ## How it works
 
