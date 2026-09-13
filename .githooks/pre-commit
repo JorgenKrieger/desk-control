@@ -1,0 +1,7 @@
+#!/usr/bin/env zsh
+# GIT_CONFIG_KEY_0/VALUE_0 force color.diff off regardless of the user's own
+# git config -- gitleaks parses `git diff` output internally, and a forced
+# "color.diff = always" silently breaks that parsing (it reports "0 commits
+# scanned" and finds nothing, without any error).
+GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=color.diff GIT_CONFIG_VALUE_0=false \
+  gitleaks git --staged --redact

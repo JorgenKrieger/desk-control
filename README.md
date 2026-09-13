@@ -35,6 +35,7 @@ watching the desk with the physical/manual controller within reach.
 
 ```bash
 poetry install
+git config core.hooksPath .githooks  # optional: enables the gitleaks pre-commit hook, see .githooks/README.md
 ```
 
 **1. Find your desk's `device_id`.** Required on a fresh machine -- without
