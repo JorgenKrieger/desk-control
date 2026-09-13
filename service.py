@@ -7,7 +7,7 @@ exposed to the network.
 Run directly for development:
     poetry run uvicorn service:app --host 127.0.0.1 --port 8842
 
-See launchd/com.desk-control.service.plist for running this at login.
+See launchd/ for running this at login.
 """
 
 import asyncio
@@ -18,7 +18,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 import config
-from controller import Desk, DeskNotConnected
+from controller import Desk
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("desk_control.service")
@@ -29,13 +29,19 @@ desk = Desk()
 
 
 async def _connection_loop():
-    """Keep the desk connected, reconnecting if it drops."""
+    """Keep the desk connected, reconnecting if it drops.
+
+    Broadly catches any connection error (not just DeskNotConnected) --
+    bleak can raise its own exceptions (timeouts, OS-level BLE errors) that
+    must not be allowed to kill this background task, or the service would
+    silently stop retrying and never reconnect.
+    """
     while True:
         if not desk.is_connected:
             try:
-                await desk.connect()
-            except DeskNotConnected as exc:
-                logger.warning("Could not connect to desk: %s", exc)
+                await desk.connect(device_id=config.load().get("device_id"))
+            except Exception:
+                logger.warning("Could not connect to desk, will retry", exc_info=True)
         await asyncio.sleep(RECONNECT_DELAY_SECONDS)
 
 
@@ -121,6 +127,7 @@ async def get_config():
 class ConfigRequest(BaseModel):
     sit_height_cm: float | None = None
     stand_height_cm: float | None = None
+    device_id: str | None = None
 
 
 @app.post("/config")

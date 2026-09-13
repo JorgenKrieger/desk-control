@@ -60,6 +60,7 @@ dbus-fast = {version = ">=1.83.0", markers = "sys_platform == \"linux\""}
 pyobjc-core = {version = ">=10.3", markers = "sys_platform == \"darwin\""}
 pyobjc-framework-corebluetooth = {version = ">=10.3", markers = "sys_platform == \"darwin\""}
 pyobjc-framework-libdispatch = {version = ">=10.3", markers = "sys_platform == \"darwin\""}
+typing-extensions = {version = ">=4.7.0", markers = "python_full_version < \"3.12.0\""}
 winrt-runtime = {version = ">=3.1", markers = "sys_platform == \"win32\""}
 winrt-windows-devices-bluetooth = {version = ">=3.1", markers = "sys_platform == \"win32\""}
 winrt-windows-devices-bluetooth-advertisement = {version = ">=3.1", markers = "sys_platform == \"win32\""}
@@ -618,6 +619,7 @@ files = [
 
 [package.dependencies]
 anyio = ">=3.6.2,<5"
+typing-extensions = {version = ">=4.10.0", markers = "python_version < \"3.13\""}
 
 [package.extras]
 full = ["httpx (>=0.27.0,<0.29.0)", "httpx2 (>=2.0.0)", "itsdangerous", "jinja2", "python-multipart (>=0.0.18)", "pyyaml"]
@@ -1340,5 +1342,5 @@ all = ["winrt-Windows.Foundation.Collections[all] (>=3.2.1.0,<3.3.0.0)", "winrt-
 
 [metadata]
 lock-version = "2.1"
-python-versions = ">=3.14"
-content-hash = "06e8d6e09c399fa56ffb679be336432b8739b5133b3ddff68af629862dcb95f3"
+python-versions = ">=3.11"
+content-hash = "f5bf59c3e5a63b1f1240346f29c7f5c437b0b13aab4ee9e42c9bf561832fb034"

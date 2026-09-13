@@ -14,6 +14,14 @@ CONFIG_PATH = CONFIG_DIR / "config.json"
 DEFAULTS = {
     "sit_height_cm": 70.0,
     "stand_height_cm": 110.0,
+    # Identifies your specific desk unit among devices advertising the
+    # generic name "BLE SPP" (see specs/reverse-engineer.md section 4 --
+    # this is the ASCII decoding of the desk's BLE manufacturer data, which
+    # appears tied to the QR/serial identifier on the physical unit). Find
+    # yours with a PacketLogger capture (log/README.md) if it's not already
+    # known. Leave as None to match on name only (fine if you know only one
+    # such device is nearby, but risks connecting to the wrong device).
+    "device_id": None,
 }
 
 

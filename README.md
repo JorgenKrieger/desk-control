@@ -1,7 +1,7 @@
 # desk-control
 
 ![Platform](https://img.shields.io/badge/platform-macOS-lightgrey)
-![Python](https://img.shields.io/badge/python-3.14%2B-blue)
+![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![Protocol](https://img.shields.io/badge/protocol-reverse--engineered-success)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
@@ -64,12 +64,27 @@ curl -X POST http://127.0.0.1:8842/move_to -H 'content-type: application/json' -
 | `POST /move_to` | Body: `{"height_cm": number}` -- move to an absolute height |
 | `POST /sit` | Move to the stored sit height |
 | `POST /stand` | Move to the stored stand height |
-| `GET /config` | Current stored sit/stand heights |
-| `POST /config` | Body: `{"sit_height_cm"?, "stand_height_cm"?}` -- update presets |
+| `GET /config` | Current stored config (see below) |
+| `POST /config` | Body: `{"sit_height_cm"?, "stand_height_cm"?, "device_id"?}` -- update config |
 
 The service binds to `127.0.0.1` only and is meant to be called by things
 running on the same machine (a hotkey tool, a calendar-based automation,
 etc.), not exposed to the network.
+
+## Configuration
+
+Sit/stand heights and `device_id` are stored in
+`~/Library/Application Support/desk-control/config.json`, editable directly
+or via `POST /config`.
+
+`device_id` matters if you have more than one BLE device nearby that
+advertises as `"BLE SPP"` -- it's a generic name used by many cheap
+serial-over-BLE modules, not unique to this desk, so without it the service
+just connects to the first matching name it finds. Set it to disambiguate:
+it's the ASCII decoding of the desk's BLE manufacturer data, which appears
+tied to the QR/serial identifier on the physical unit (see
+[`specs/reverse-engineer.md`](specs/reverse-engineer.md) section 4). Find
+yours with a PacketLogger capture -- see [`log/README.md`](log/README.md).
 
 ## How it works
 
@@ -93,4 +108,4 @@ command, the same way the original app does.
 
 - macOS (uses `bleak`, which uses CoreBluetooth)
 - [Poetry](https://python-poetry.org/)
-- Python >=3.14
+- Python >=3.11

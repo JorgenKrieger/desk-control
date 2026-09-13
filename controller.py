@@ -13,7 +13,7 @@ any movement it starts after MAX_MOVE_SECONDS.
 import asyncio
 import logging
 
-from bleak import BleakClient, BleakScanner
+from bleak import AdvertisementData, BLEDevice, BleakClient, BleakScanner
 
 import protocol
 
@@ -53,9 +53,29 @@ class Desk:
     def is_connected(self) -> bool:
         return self._client is not None and self._client.is_connected
 
-    async def connect(self, timeout: float = 10.0) -> None:
-        logger.info("Scanning for '%s'...", DEVICE_NAME)
-        device = await BleakScanner.find_device_by_name(DEVICE_NAME, timeout=timeout)
+    async def connect(self, timeout: float = 10.0, device_id: str | None = None) -> None:
+        """Scan for and connect to the desk.
+
+        `device_id` should be the identifier printed on/associated with your
+        specific desk unit (see config.py / README) -- "BLE SPP" is a generic
+        name used by many cheap serial-over-BLE modules, not unique to this
+        desk, so without a device_id this will connect to the first matching
+        name it finds, which could be the wrong device if more than one is
+        nearby.
+        """
+        if device_id:
+            logger.info("Scanning for '%s' with device id '%s'...", DEVICE_NAME, device_id)
+            device = await BleakScanner.find_device_by_filter(
+                lambda d, adv: self._matches(d, adv, device_id), timeout=timeout
+            )
+        else:
+            logger.warning(
+                "No device_id configured -- matching on name '%s' only, which "
+                "could match an unrelated device. See config.py.",
+                DEVICE_NAME,
+            )
+            device = await BleakScanner.find_device_by_name(DEVICE_NAME, timeout=timeout)
+
         if device is None:
             raise DeskNotConnected(f"'{DEVICE_NAME}' not found")
 
@@ -64,6 +84,20 @@ class Desk:
         await client.start_notify(NOTIFY_UUID, self._on_notification)
         self._client = client
         logger.info("Connected to desk at %s", device.address)
+
+    @staticmethod
+    def _matches(device: BLEDevice, adv: AdvertisementData, device_id: str) -> bool:
+        if device.name != DEVICE_NAME:
+            return False
+        wanted = device_id.encode("ascii", errors="ignore")
+        for company_id, data in adv.manufacturer_data.items():
+            # bleak splits this device's manufacturer data into a 2-byte
+            # "company id" (really just the first two ASCII bytes of the
+            # desk's identifier) plus the rest -- put them back together.
+            full = bytes([(company_id >> 8) & 0xFF, company_id & 0xFF]) + data
+            if wanted in full:
+                return True
+        return False
 
     async def disconnect(self) -> None:
         self._cancel_watchdog()
