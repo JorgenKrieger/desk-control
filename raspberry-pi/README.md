@@ -10,7 +10,7 @@ self-hosted replacement for the manufacturer's BLE app for a Jingshi
 standing desk (advertises as `BLE SPP`). It runs as a per-user `systemd`
 service on a Raspberry Pi Zero W, reachable over your home network, so
 control doesn't depend on a laptop being awake. See
-[`../mac/README.md`](../mac/README.md) for the original reverse-engineering
+[`../dev/README.md`](../dev/README.md) for the original reverse-engineering
 story and protocol details, and
 [`specs/port-to-raspberry-pi.md`](specs/port-to-raspberry-pi.md) for how
 this port was validated on the real hardware.
@@ -20,7 +20,7 @@ this port was validated on the real hardware.
 Live and working: BLE connect, live height, up/down/stop, and move-to
 (sit/stand presets) all confirmed end-to-end on the actual Pi Zero W, as a
 regular non-root user, reachable over the LAN. The Mac's own service has
-been retired in favor of this one -- see `../mac/README.md`.
+been retired in favor of this one -- see `../dev/README.md`.
 
 ## Setup
 
@@ -72,8 +72,8 @@ curl http://<pi-address>:8842/status
 curl -X POST http://<pi-address>:8842/stand
 ```
 
-Or from the Mac, the `desk` CLI (in `../mac/`) already points at the Pi by
-default -- see `../mac/README.md`.
+Or use the CLI (in `../cli/`, works from any machine, not just the Mac) --
+already points at the Pi by default. See [`../cli/README.md`](../cli/README.md).
 
 ## API
 
@@ -105,7 +105,7 @@ Sit/stand heights and `device_id` are stored in
 
 `device_id` is the ASCII decoding of the desk's BLE manufacturer data,
 which appears tied to the QR/serial identifier on the physical unit (see
-`../mac/specs/reverse-engineer.md` section 4). Find yours with
+`../dev/specs/reverse-engineer.md` section 4). Find yours with
 `discover_device.py`.
 
 ## How it works
@@ -116,9 +116,8 @@ controller.py   Desk class: holds the BLE connection, tracks live height, moveme
 config.py       local storage for sit/stand preset heights (the desk itself has no preset storage)
 service.py      FastAPI app exposing the above over HTTP, bound to 0.0.0.0
 discover_device.py  one-time setup helper: finds your desk's device_id
-cli.py          the `desk` CLI (status/up/down/stop/sit/stand/move-to/config)
 systemd/        run service.py as a per-user systemd service at boot
-specs/          the reverse-engineering log (copied from mac/) and the Pi port plan
+specs/          the reverse-engineering log (copied from dev/) and the Pi port plan
 ```
 
 ## Requirements

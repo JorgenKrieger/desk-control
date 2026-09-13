@@ -39,9 +39,8 @@ async def main():
         print("  - it's not connected to another app (e.g. JSBLE)")
         print("  - this project's own service isn't currently running/connected")
         print("    to it -- a connected device stops advertising, so this scan")
-        print("    won't see it (stop the service first: ./launchd/uninstall.sh,")
-        print("    or if just testing, launchctl bootout")
-        print("    gui/$(id -u)/com.desk-control.service)")
+        print("    won't see it (stop the service first: systemctl --user stop")
+        print("    desk-control.service, or ./systemd/uninstall.sh to remove it)")
         return
 
     if len(matches) > 1:

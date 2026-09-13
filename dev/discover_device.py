@@ -39,9 +39,10 @@ async def main():
         print("  - it's not connected to another app (e.g. JSBLE)")
         print("  - this project's own service isn't currently running/connected")
         print("    to it -- a connected device stops advertising, so this scan")
-        print("    won't see it (stop the service first: ./launchd/uninstall.sh,")
-        print("    or if just testing, launchctl bootout")
-        print("    gui/$(id -u)/com.desk-control.service)")
+        print("    won't see it. If you're running the service here for local")
+        print("    testing, stop it first (Ctrl-C, or launchctl bootout")
+        print("    gui/$(id -u)/com.desk-control.service if installed).")
+        print("    Otherwise check ../raspberry-pi/ isn't already connected.")
         return
 
     if len(matches) > 1:

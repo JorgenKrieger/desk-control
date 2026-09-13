@@ -13,7 +13,7 @@ dependencies = [
     "uvicorn (>=0.52.4,<0.53.0)"
 ]
 
-# No [tool.poetry] / [build-system] here on purpose -- unlike mac/, this
+# No [tool.poetry] / [build-system] here on purpose -- unlike dev/, this
 # directory uses plain pip + venv (see requirements.txt), decided given how
 # memory-constrained the Pi is. This file is kept only as human-readable
-# dependency documentation, matching mac/'s format.
+# dependency documentation, matching dev/'s format.

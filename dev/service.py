@@ -1,13 +1,12 @@
-"""Local background service exposing the desk over a small HTTP API.
+"""Local service exposing the desk over a small HTTP API, for development.
 
-Bound to 127.0.0.1 only -- this is meant to be called by things running on
-this same Mac (Hammerspoon, a calendar watcher, a future menu bar app), not
-exposed to the network.
+The live, always-on deployment is ../raspberry-pi/ -- this is for local
+testing on the Mac only, bound to 127.0.0.1 (not meant to be reachable from
+other devices). Only one of dev/ and raspberry-pi/ can hold the desk's BLE
+connection at a time.
 
-Run directly for development:
+Run directly:
     poetry run uvicorn service:app --host 127.0.0.1 --port 8842
-
-See launchd/ for running this at login.
 """
 
 import asyncio

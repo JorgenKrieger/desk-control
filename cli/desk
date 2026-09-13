@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # Thin wrapper so `desk status` etc. work from anywhere, not just this repo.
+# cli.py has no external dependencies (stdlib only), so no venv/Poetry needed.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-cd "$PROJECT_DIR"
-exec .venv/bin/python3 cli.py "$@"
+exec python3 "$SCRIPT_DIR/cli.py" "$@"

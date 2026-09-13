@@ -1,17 +1,26 @@
 """Command-line client for the desk-control service.
 
 A thin wrapper around the same HTTP API Hammerspoon/automations would call
-(see service.py) -- nothing here talks to the desk directly, it's just nicer
-to type `desk stand` than a curl one-liner.
+(see raspberry-pi/service.py) -- nothing here talks to the desk directly,
+it's just nicer to type `desk stand` than a curl one-liner. Stdlib only, no
+dependencies, works from any machine with Python 3 and network access to
+wherever the service is running.
+
+Not Mac- or Pi-specific -- this could run from anywhere.
 """
 
 import argparse
 import json
+import os
 import sys
 import urllib.error
 import urllib.request
 
-BASE_URL = "http://127.0.0.1:8842"
+# The Raspberry Pi is the primary always-on controller (see
+# raspberry-pi/specs/port-to-raspberry-pi.md). Override with
+# DESK_CONTROL_URL if you're pointing at something else (e.g. running the
+# dev/ service locally on the Mac instead).
+BASE_URL = os.environ.get("DESK_CONTROL_URL", "http://0.0.0.0:8842")
 
 
 def request(method: str, path: str, body: dict | None = None) -> dict:
