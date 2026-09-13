@@ -1,13 +1,18 @@
-"""Local background service exposing the desk over a small HTTP API.
+"""Background service exposing the desk over a small HTTP API.
 
-Bound to 127.0.0.1 only -- this is meant to be called by things running on
-this same Mac (Hammerspoon, a calendar watcher, a future menu bar app), not
-exposed to the network.
+Unlike the Mac version, this binds to 0.0.0.0 -- the whole point of running
+on an always-on Pi is to be reachable from other devices on the home
+network (Hammerspoon on the Mac, a future Home Assistant instance), not
+just from the same machine. This is a deliberate choice, not an oversight:
+anything on the home network can now move the desk, which is judged an
+acceptable tradeoff for a private network with no guest access. Revisit
+(e.g. a shared-secret header, or firewalling to specific device IPs) if
+that assumption ever stops holding.
 
 Run directly for development:
-    poetry run uvicorn service:app --host 127.0.0.1 --port 8842
+    .venv/bin/uvicorn service:app --host 0.0.0.0 --port 8842
 
-See launchd/ for running this at login.
+See systemd/ for running this at boot.
 """
 
 import asyncio

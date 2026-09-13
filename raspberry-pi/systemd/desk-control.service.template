@@ -1,0 +1,14 @@
+[Unit]
+Description=desk-control service
+After=network.target bluetooth.target
+Wants=bluetooth.target
+
+[Service]
+Type=simple
+WorkingDirectory=__PROJECT_DIR__
+ExecStart=__PROJECT_DIR__/.venv/bin/uvicorn service:app --host 0.0.0.0 --port 8842
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

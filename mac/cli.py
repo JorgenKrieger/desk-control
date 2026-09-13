@@ -7,11 +7,17 @@ to type `desk stand` than a curl one-liner.
 
 import argparse
 import json
+import os
 import sys
 import urllib.error
 import urllib.request
 
-BASE_URL = "http://127.0.0.1:8842"
+# The Raspberry Pi is the primary always-on controller (see
+# raspberry-pi/specs/port-to-raspberry-pi.md) -- this Mac's own service is
+# dev/reference only and isn't normally running. Override with
+# DESK_CONTROL_URL if you're pointing at something else (e.g. running the
+# Mac service locally for development).
+BASE_URL = os.environ.get("DESK_CONTROL_URL", "http://0.0.0.0:8842")
 
 
 def request(method: str, path: str, body: dict | None = None) -> dict:

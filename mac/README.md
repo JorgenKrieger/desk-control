@@ -9,9 +9,15 @@ A local, self-hosted replacement for the manufacturer's BLE app for a Jingshi
 standing desk (advertises as `BLE SPP`) -- no more depending on the original
 app just to move a desk. The BLE protocol was reverse-engineered by passively
 sniffing the official app's own Bluetooth traffic (no jailbreak, no
-debugger, no SIP changes), and a small background service now exposes the
-desk over a local HTTP API for use from your own scripts, hotkeys, or
-automations.
+debugger, no SIP changes).
+
+**This directory is the original implementation and the reference for
+protocol/investigation details -- it is not the live, always-on deployment
+anymore.** That's now [`../raspberry-pi/`](../raspberry-pi/README.md), an
+always-on Pi reachable over the home network. The `desk` CLI here (`bin/desk`)
+already points at the Pi by default. Use this directory for development, or
+if you want to run the service locally on the Mac instead for some reason
+(only one of the two can hold the desk's BLE connection at a time).
 
 ## Status
 

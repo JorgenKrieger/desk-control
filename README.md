@@ -2,14 +2,15 @@
 
 A local, self-hosted replacement for the manufacturer's BLE app for a Jingshi
 standing desk -- see [`mac/README.md`](mac/README.md) for the full project
-story, the reverse-engineered protocol, and how it works.
+story and the reverse-engineered protocol.
 
 This repo has two parts:
 
-- **[`mac/`](mac/README.md)** -- the working, live-tested implementation
-  running on a Mac (background service via `launchd`, BLE via CoreBluetooth).
-- **[`raspberry-pi/`](raspberry-pi/README.md)** -- a from-`mac/` starting
-  point being ported to run on an always-on Raspberry Pi Zero W instead, so
-  desk control doesn't depend on a laptop being awake. See
-  [`raspberry-pi/specs/port-to-raspberry-pi.md`](raspberry-pi/specs/port-to-raspberry-pi.md)
-  for the porting plan -- the code there hasn't been changed yet, only copied.
+- **[`raspberry-pi/`](raspberry-pi/README.md)** -- the live, primary,
+  always-on deployment: a `systemd` service on a Raspberry Pi Zero W,
+  reachable over the home network.
+- **[`mac/`](mac/README.md)** -- the original implementation and the
+  reference for protocol/investigation details. No longer the live
+  deployment, but still useful for development (only one of the two can
+  hold the desk's BLE connection at a time). The `desk` CLI here points at
+  the Pi by default.

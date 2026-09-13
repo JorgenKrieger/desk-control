@@ -8,7 +8,7 @@ have to live somewhere -- here, rather than in the Chinese app.
 import json
 from pathlib import Path
 
-CONFIG_DIR = Path.home() / "Library" / "Application Support" / "desk-control"
+CONFIG_DIR = Path.home() / ".config" / "desk-control"
 CONFIG_PATH = CONFIG_DIR / "config.json"
 
 DEFAULTS = {

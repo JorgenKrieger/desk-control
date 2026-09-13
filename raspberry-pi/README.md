@@ -1,107 +1,79 @@
-# desk-control (Raspberry Pi port -- planning stage)
+# desk-control (Raspberry Pi)
 
-> **Status:** this directory is currently an unmodified copy of `../mac/`.
-> Everything below still describes the *Mac* setup (launchd, CoreBluetooth,
-> `~/Library/...` paths) and doesn't reflect the Pi yet. See
-> [`specs/port-to-raspberry-pi.md`](specs/port-to-raspberry-pi.md) for what
-> actually needs to change and why, before following any instructions below
-> literally on a Pi.
-
-![Platform](https://img.shields.io/badge/platform-macOS-lightgrey)
+![Platform](https://img.shields.io/badge/platform-Raspberry%20Pi-c51a4a)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![Protocol](https://img.shields.io/badge/protocol-reverse--engineered-success)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-A local, self-hosted replacement for the manufacturer's BLE app for a Jingshi
-standing desk (advertises as `BLE SPP`) -- no more depending on the original
-app just to move a desk. The BLE protocol was reverse-engineered by passively
-sniffing the official app's own Bluetooth traffic (no jailbreak, no
-debugger, no SIP changes), and a small background service now exposes the
-desk over a local HTTP API for use from your own scripts, hotkeys, or
-automations.
+This is the **primary, always-on** deployment of desk-control -- a local,
+self-hosted replacement for the manufacturer's BLE app for a Jingshi
+standing desk (advertises as `BLE SPP`). It runs as a per-user `systemd`
+service on a Raspberry Pi Zero W, reachable over your home network, so
+control doesn't depend on a laptop being awake. See
+[`../mac/README.md`](../mac/README.md) for the original reverse-engineering
+story and protocol details, and
+[`specs/port-to-raspberry-pi.md`](specs/port-to-raspberry-pi.md) for how
+this port was validated on the real hardware.
 
 ## Status
 
-The core protocol is fully reverse-engineered and implemented: live height,
-up/down movement, stop, and moving to an absolute height (which is how
-sit/stand presets work). See [`specs/reverse-engineer.md`](specs/reverse-engineer.md)
-for the full investigation log and confirmed frame formats.
+Live and working: BLE connect, live height, up/down/stop, and move-to
+(sit/stand presets) all confirmed end-to-end on the actual Pi Zero W, as a
+regular non-root user, reachable over the LAN. The Mac's own service has
+been retired in favor of this one -- see `../mac/README.md`.
 
-Not yet reverse-engineered: lock/unlock, and decoding error/status packets.
-
-## Safety
-
-This controls a physical motorized desk. The desk has **no built-in movement
-timeout** -- a single "move" command runs until an explicit stop is sent, so
-this project's own service enforces a stop after 20 seconds as a safety net
-(see `controller.py`). If you're extending this project: verify any new
-command via passive observation first, and test physical movement only while
-watching the desk with the physical/manual controller within reach.
-
-## Quick start
+## Setup
 
 ```bash
-poetry install
-git config core.hooksPath .githooks  # optional: enables the gitleaks pre-commit hook, see .githooks/README.md
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
 ```
 
-**1. Find your desk's `device_id`.** Required on a fresh machine -- without
-it, the service will connect to *any* device advertising the generic name
-`"BLE SPP"`, not necessarily your desk (see Configuration below):
+**1. Find your desk's `device_id`** (needed since `"BLE SPP"` is a generic
+name other devices might also advertise):
 
 ```bash
-poetry run python discover_device.py
+.venv/bin/python3 discover_device.py
 ```
 
-This prints a `device_id` and the `curl` command to set it -- but you can't
-run it yet, since nothing's listening on port 8842 until step 2. Note it
-down for now.
+Note the printed `device_id`.
 
-**2. Start the service**, either directly for development:
+**2. Start the service** for now, to set config:
 
 ```bash
-poetry run uvicorn service:app --host 127.0.0.1 --port 8842
+.venv/bin/uvicorn service:app --host 0.0.0.0 --port 8842
 ```
 
-or installed as a background service that starts at login (see `launchd/`):
+**3. Set your config** (device_id from step 1, your actual sit/stand
+heights) from another terminal:
 
 ```bash
-./launchd/install.sh
-```
-
-**3. Set your config** (the `device_id` from step 1, and your actual sit/stand heights):
-
-```bash
-curl -X POST http://127.0.0.1:8842/config -H 'content-type: application/json' \
+curl -X POST http://localhost:8842/config -H 'content-type: application/json' \
   -d '{"device_id": "<from step 1>", "sit_height_cm": 70, "stand_height_cm": 110}'
 ```
 
-Restart the service once (`launchctl kickstart -k gui/$(id -u)/com.desk-control.service`,
-or just re-run `uvicorn` if running it directly) so it picks up the new `device_id`.
-
-From then on, using the CLI (a thin wrapper around the same API):
+Stop the foreground service (Ctrl-C), then **install it as a real
+always-on service**:
 
 ```bash
-./bin/desk status
-./bin/desk stand
-./bin/desk sit
-./bin/desk stop
-./bin/desk move-to 95
-./bin/desk config get
-./bin/desk config set --sit 72 --stand 112
+cd systemd && ./install.sh
 ```
 
-Put `bin/` on your `PATH` (or symlink `bin/desk` into somewhere already on it,
-e.g. `ln -s "$(pwd)/bin/desk" ~/.local/bin/desk`) to run `desk status` from
-anywhere, not just this folder.
+This starts it now, at every boot, restarts it if it crashes, and enables
+lingering so it keeps running independent of any SSH login. See
+[`systemd/README.md`](systemd/README.md).
 
-Or hit the HTTP API directly -- useful for Hammerspoon, calendar automations,
-etc.:
+## Using it
+
+From any device on your network:
 
 ```bash
-curl http://127.0.0.1:8842/status
-curl -X POST http://127.0.0.1:8842/stand
+curl http://<pi-address>:8842/status
+curl -X POST http://<pi-address>:8842/stand
 ```
+
+Or from the Mac, the `desk` CLI (in `../mac/`) already points at the Pi by
+default -- see `../mac/README.md`.
 
 ## API
 
@@ -114,28 +86,27 @@ curl -X POST http://127.0.0.1:8842/stand
 | `POST /move_to` | Body: `{"height_cm": number}` -- move to an absolute height |
 | `POST /sit` | Move to the stored sit height |
 | `POST /stand` | Move to the stored stand height |
-| `GET /config` | Current stored config (see below) |
+| `GET /config` | Current stored config |
 | `POST /config` | Body: `{"sit_height_cm"?, "stand_height_cm"?, "device_id"?}` -- update config |
 
-The service binds to `127.0.0.1` only and is meant to be called by things
-running on the same machine (a hotkey tool, a calendar-based automation,
-etc.), not exposed to the network.
+**Note on network exposure:** this binds to `0.0.0.0`, deliberately --
+unlike the Mac version, the whole point of the Pi is to be reachable from
+other devices on your home network. That means anything on your network can
+move the desk. Judged an acceptable tradeoff for a private network with no
+guest access; revisit (a shared-secret header, or firewalling to specific
+device IPs) if that assumption ever stops holding. See `service.py`'s
+docstring and `specs/port-to-raspberry-pi.md` section 3.3.
 
 ## Configuration
 
 Sit/stand heights and `device_id` are stored in
-`~/Library/Application Support/desk-control/config.json`, editable directly
-or via `POST /config`.
+`~/.config/desk-control/config.json`, editable directly or via
+`POST /config`.
 
-`device_id` matters because `"BLE SPP"` is a generic name used by many cheap
-serial-over-BLE modules, not unique to this desk -- without it, the service
-just connects to the first device it finds advertising that name, which
-might not be your desk. Find yours with `poetry run python discover_device.py`
-(see Quick start above). It's the ASCII decoding of the desk's BLE
-manufacturer data, which appears tied to the QR/serial identifier on the
-physical unit (see [`specs/reverse-engineer.md`](specs/reverse-engineer.md)
-section 4). If you ever need to dig deeper with a full PacketLogger capture
-instead, see [`log/README.md`](log/README.md).
+`device_id` is the ASCII decoding of the desk's BLE manufacturer data,
+which appears tied to the QR/serial identifier on the physical unit (see
+`../mac/specs/reverse-engineer.md` section 4). Find yours with
+`discover_device.py`.
 
 ## How it works
 
@@ -143,23 +114,22 @@ instead, see [`log/README.md`](log/README.md).
 protocol.py     the confirmed BLE frame codec (checksums, command/telemetry encoding)
 controller.py   Desk class: holds the BLE connection, tracks live height, movement + safety watchdog
 config.py       local storage for sit/stand preset heights (the desk itself has no preset storage)
-service.py      FastAPI app exposing the above over HTTP
+service.py      FastAPI app exposing the above over HTTP, bound to 0.0.0.0
 discover_device.py  one-time setup helper: finds your desk's device_id
 cli.py          the `desk` CLI (status/up/down/stop/sit/stand/move-to/config)
-bin/desk        wrapper script so `desk <command>` works from anywhere
-launchd/        run service.py as a per-user background service at login
-pklg_decode.py  decodes macOS PacketLogger (.pklg) captures, for further protocol investigation
+systemd/        run service.py as a per-user systemd service at boot
+pklg_decode.py  decodes PacketLogger (.pklg) captures, for further protocol investigation
 log/            where local captures go (gitignored -- see log/README.md)
-specs/          the reverse-engineering investigation log
+specs/          the reverse-engineering log (copied from mac/) and the Pi port plan
 ```
-
-The desk itself needs no pairing/preset storage on its end -- the app-side
-`config.json` (under `~/Library/Application Support/desk-control/`) just
-remembers your sit/stand heights and sends them as an absolute move-to-height
-command, the same way the original app does.
 
 ## Requirements
 
-- macOS (uses `bleak`, which uses CoreBluetooth)
-- [Poetry](https://python-poetry.org/)
+- A Raspberry Pi running a reasonably recent OS (validated on a Zero W
+  running Raspbian 13/trixie, Python 3.13, glibc 2.41 -- see
+  `specs/port-to-raspberry-pi.md` section 7 for why the OS recency matters
+  on older Pi hardware)
+- `python3-dev` (`sudo apt-get install -y python3-dev`) -- needed to
+  compile `bleak`'s Linux BLE backend (`dbus-fast`) on first install; only
+  happens once, the built wheel is cached afterward
 - Python >=3.11
