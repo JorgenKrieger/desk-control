@@ -1,0 +1,130 @@
+"""Local background service exposing the desk over a small HTTP API.
+
+Bound to 127.0.0.1 only -- this is meant to be called by things running on
+this same Mac (Hammerspoon, a calendar watcher, a future menu bar app), not
+exposed to the network.
+
+Run directly for development:
+    poetry run uvicorn service:app --host 127.0.0.1 --port 8842
+
+See launchd/com.desk-control.service.plist for running this at login.
+"""
+
+import asyncio
+import logging
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+
+import config
+from controller import Desk, DeskNotConnected
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("desk_control.service")
+
+RECONNECT_DELAY_SECONDS = 5.0
+
+desk = Desk()
+
+
+async def _connection_loop():
+    """Keep the desk connected, reconnecting if it drops."""
+    while True:
+        if not desk.is_connected:
+            try:
+                await desk.connect()
+            except DeskNotConnected as exc:
+                logger.warning("Could not connect to desk: %s", exc)
+        await asyncio.sleep(RECONNECT_DELAY_SECONDS)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    task = asyncio.create_task(_connection_loop())
+    yield
+    task.cancel()
+    await desk.disconnect()
+
+
+app = FastAPI(title="desk-control", lifespan=lifespan)
+
+
+def _require_connected():
+    if not desk.is_connected:
+        raise HTTPException(status_code=503, detail="Desk is not connected")
+
+
+@app.get("/status")
+async def status():
+    height_cm = desk.height_cm
+    if desk.is_connected and height_cm is None:
+        height_cm = await desk.refresh_height()
+    return {
+        "connected": desk.is_connected,
+        "height_cm": height_cm,
+        "is_moving": desk.is_moving,
+    }
+
+
+@app.post("/up")
+async def up():
+    _require_connected()
+    await desk.move_up()
+    return {"ok": True}
+
+
+@app.post("/down")
+async def down():
+    _require_connected()
+    await desk.move_down()
+    return {"ok": True}
+
+
+@app.post("/stop")
+async def stop():
+    _require_connected()
+    await desk.stop()
+    return {"ok": True}
+
+
+class MoveToRequest(BaseModel):
+    height_cm: float
+
+
+@app.post("/move_to")
+async def move_to(body: MoveToRequest):
+    _require_connected()
+    await desk.move_to(body.height_cm)
+    return {"ok": True}
+
+
+@app.post("/sit")
+async def sit():
+    _require_connected()
+    await desk.move_to(config.load()["sit_height_cm"])
+    return {"ok": True}
+
+
+@app.post("/stand")
+async def stand():
+    _require_connected()
+    await desk.move_to(config.load()["stand_height_cm"])
+    return {"ok": True}
+
+
+@app.get("/config")
+async def get_config():
+    return config.load()
+
+
+class ConfigRequest(BaseModel):
+    sit_height_cm: float | None = None
+    stand_height_cm: float | None = None
+
+
+@app.post("/config")
+async def set_config(body: ConfigRequest):
+    updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    config.save(updates)
+    return config.load()
