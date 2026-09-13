@@ -1,10 +1,13 @@
 # Porting desk-control to a Raspberry Pi Zero W
 
-**Status:** Planning, with the dependency-compatibility risk empirically
-resolved (see section 3.1 and section 7) against the real Pi over SSH. The
-code in this directory is still an unmodified copy of `mac/` -- nothing has
-been changed yet. This document is the plan for what needs to change and
-why, to be worked through before/while doing the actual port.
+**Status:** Live and deployed. The dependency-compatibility risk was
+resolved empirically against the real Pi over SSH (sections 3.1 and 7),
+the environment is set up and working end-to-end on the actual hardware
+(section 7's follow-up), and the service is installed and running as a
+`systemd` unit (section 3.2, `../systemd/`). This document remains as the
+record of what changed, why, and what's still open (see the checklist and
+open questions below) -- most of the original plan is done, not aspirational
+anymore.
 
 **Target hardware:** original Raspberry Pi Zero W (single-core ARM11,
 ARMv6, 1GHz, 512MB RAM) -- *not* the newer Pi Zero 2 W (quad-core ARMv8).
