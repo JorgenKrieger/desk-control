@@ -1,2 +1,6 @@
 __pycache__/
 *.pyc
+
+# PacketLogger captures contain local Bluetooth environment data (your Mac's
+# BT address, nearby devices' names/addresses) -- keep these local only.
+log/*.pklg
