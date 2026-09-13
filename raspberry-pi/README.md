@@ -3,8 +3,7 @@
 The live, primary, always-on deployment -- see [the root README](../README.md)
 for the full project story, architecture, and API reference. This is a
 per-user `systemd` service on a Raspberry Pi Zero W, bound to `0.0.0.0` so
-it's reachable over your home network (unlike `../dev/`, which binds to
-`127.0.0.1` only).
+it's reachable over your home network.
 
 See [`specs/port-to-raspberry-pi.md`](specs/port-to-raspberry-pi.md) for
 how this port was validated on the real hardware (dependency compatibility,
@@ -55,7 +54,7 @@ lingering so it keeps running independent of any SSH login. See
 curl http://<pi-address>:8842/status
 ```
 
-or with [`../cli/`](../cli/README.md), which already points here by default.
+or with any HTTP client, Hammerspoon hotkey, Home Assistant integration, etc.
 
 ## Network exposure
 
@@ -81,7 +80,7 @@ config.py       local storage for sit/stand preset heights (the desk itself has 
 service.py      FastAPI app exposing the above over HTTP, bound to 0.0.0.0
 discover_device.py  one-time setup helper: finds your desk's device_id
 systemd/        run service.py as a per-user systemd service at boot
-specs/          the reverse-engineering log (copied from dev/) and the Pi port plan
+specs/          the reverse-engineering log and the Pi port plan
 ```
 
 ## Requirements
