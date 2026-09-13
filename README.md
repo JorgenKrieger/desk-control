@@ -3,6 +3,7 @@
 ![Platform](https://img.shields.io/badge/platform-macOS-lightgrey)
 ![Python](https://img.shields.io/badge/python-3.14%2B-blue)
 ![Protocol](https://img.shields.io/badge/protocol-reverse--engineered-success)
+![License](https://img.shields.io/badge/license-MIT-blue)
 
 A local, self-hosted replacement for the manufacturer's BLE app for a Jingshi
 standing desk (advertises as `BLE SPP`) -- no more depending on the original
