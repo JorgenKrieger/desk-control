@@ -8,7 +8,7 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/jorgen/.local/bin/poetry</string>
+        <string>__POETRY_PATH__</string>
         <string>run</string>
         <string>uvicorn</string>
         <string>service:app</string>
@@ -19,12 +19,12 @@
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/jorgen/JorgenKrieger/desk-control</string>
+    <string>__PROJECT_DIR__</string>
 
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
-        <string>/Users/jorgen/.local/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
+        <string>__POETRY_DIR__:/opt/homebrew/bin:/usr/bin:/bin</string>
     </dict>
 
     <key>RunAtLoad</key>
@@ -37,9 +37,9 @@
     <integer>10</integer>
 
     <key>StandardOutPath</key>
-    <string>/Users/jorgen/Library/Logs/desk-control.log</string>
+    <string>__LOG_PATH__</string>
 
     <key>StandardErrorPath</key>
-    <string>/Users/jorgen/Library/Logs/desk-control.log</string>
+    <string>__LOG_PATH__</string>
 </dict>
 </plist>
