@@ -118,8 +118,6 @@ service.py      FastAPI app exposing the above over HTTP, bound to 0.0.0.0
 discover_device.py  one-time setup helper: finds your desk's device_id
 cli.py          the `desk` CLI (status/up/down/stop/sit/stand/move-to/config)
 systemd/        run service.py as a per-user systemd service at boot
-pklg_decode.py  decodes PacketLogger (.pklg) captures, for further protocol investigation
-log/            where local captures go (gitignored -- see log/README.md)
 specs/          the reverse-engineering log (copied from mac/) and the Pi port plan
 ```
 

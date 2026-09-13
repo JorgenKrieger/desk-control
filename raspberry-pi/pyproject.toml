@@ -13,9 +13,7 @@ dependencies = [
     "uvicorn (>=0.52.4,<0.53.0)"
 ]
 
-[tool.poetry]
-package-mode = false
-
-[build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+# No [tool.poetry] / [build-system] here on purpose -- unlike mac/, this
+# directory uses plain pip + venv (see requirements.txt), decided given how
+# memory-constrained the Pi is. This file is kept only as human-readable
+# dependency documentation, matching mac/'s format.
