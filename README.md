@@ -35,15 +35,43 @@ watching the desk with the physical/manual controller within reach.
 
 ```bash
 poetry install
+```
 
-# run the service directly (foreground, for development)
+**1. Find your desk's `device_id`.** Required on a fresh machine -- without
+it, the service will connect to *any* device advertising the generic name
+`"BLE SPP"`, not necessarily your desk (see Configuration below):
+
+```bash
+poetry run python discover_device.py
+```
+
+This prints a `device_id` and the `curl` command to set it -- but you can't
+run it yet, since nothing's listening on port 8842 until step 2. Note it
+down for now.
+
+**2. Start the service**, either directly for development:
+
+```bash
 poetry run uvicorn service:app --host 127.0.0.1 --port 8842
+```
 
-# or install it as a background service that starts at login (see launchd/)
+or installed as a background service that starts at login (see `launchd/`):
+
+```bash
 ./launchd/install.sh
 ```
 
-Once running:
+**3. Set your config** (the `device_id` from step 1, and your actual sit/stand heights):
+
+```bash
+curl -X POST http://127.0.0.1:8842/config -H 'content-type: application/json' \
+  -d '{"device_id": "<from step 1>", "sit_height_cm": 70, "stand_height_cm": 110}'
+```
+
+Restart the service once (`launchctl kickstart -k gui/$(id -u)/com.desk-control.service`,
+or just re-run `uvicorn` if running it directly) so it picks up the new `device_id`.
+
+From then on:
 
 ```bash
 curl http://127.0.0.1:8842/status
@@ -77,14 +105,15 @@ Sit/stand heights and `device_id` are stored in
 `~/Library/Application Support/desk-control/config.json`, editable directly
 or via `POST /config`.
 
-`device_id` matters if you have more than one BLE device nearby that
-advertises as `"BLE SPP"` -- it's a generic name used by many cheap
-serial-over-BLE modules, not unique to this desk, so without it the service
-just connects to the first matching name it finds. Set it to disambiguate:
-it's the ASCII decoding of the desk's BLE manufacturer data, which appears
-tied to the QR/serial identifier on the physical unit (see
-[`specs/reverse-engineer.md`](specs/reverse-engineer.md) section 4). Find
-yours with a PacketLogger capture -- see [`log/README.md`](log/README.md).
+`device_id` matters because `"BLE SPP"` is a generic name used by many cheap
+serial-over-BLE modules, not unique to this desk -- without it, the service
+just connects to the first device it finds advertising that name, which
+might not be your desk. Find yours with `poetry run python discover_device.py`
+(see Quick start above). It's the ASCII decoding of the desk's BLE
+manufacturer data, which appears tied to the QR/serial identifier on the
+physical unit (see [`specs/reverse-engineer.md`](specs/reverse-engineer.md)
+section 4). If you ever need to dig deeper with a full PacketLogger capture
+instead, see [`log/README.md`](log/README.md).
 
 ## How it works
 
@@ -93,6 +122,7 @@ protocol.py     the confirmed BLE frame codec (checksums, command/telemetry enco
 controller.py   Desk class: holds the BLE connection, tracks live height, movement + safety watchdog
 config.py       local storage for sit/stand preset heights (the desk itself has no preset storage)
 service.py      FastAPI app exposing the above over HTTP
+discover_device.py  one-time setup helper: finds your desk's device_id
 launchd/        run service.py as a per-user background service at login
 pklg_decode.py  decodes macOS PacketLogger (.pklg) captures, for further protocol investigation
 log/            where local captures go (gitignored -- see log/README.md)
